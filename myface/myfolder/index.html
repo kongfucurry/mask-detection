@@ -1,0 +1,109 @@
+﻿<html>
+
+<head>
+    <title>拍照界面</title>
+    <script src="../myimg/jquery.min.js"></script>
+    <link rel="stylesheet" href="../myimg/bootstrap.css">
+    <script src="../myimg/bootstrap.js"></script>
+</head>
+
+<body>
+    <div class="row">
+        <div class="panel panel-default col-sm-6">
+            <div class="panel-body" style="height:500px">
+                <center>
+                    <h1>人脸识别签到打卡系统</h1>
+                </center>
+                <center><video width=400 height=400 id="mycamera"></video></center>
+            </div>
+        </div>
+        <div class="panel panel-default col-sm-6" style="height:500px">
+            <div class="panel-body">
+                <center>
+                    <h1 id="qiandao">拍照后的结果</h1>
+                </center>
+                <center><img src="myimg/404.jpg" width=400 height=400 id="myimg" /></center>
+                <center><canvas width=400 height=400 id="mypic"></canvas></center>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-5">
+        </div>
+        <div class="col-sm-3">
+            <button type="button" class="btn btn-success in">签到</button>
+            <button type="button" class="btn btn-success out">签退</button>
+        </div>
+        <div class="col-sm-4">
+        </div>
+    </div>
+    <script>
+        let btnin = document.querySelector('.in')
+        let btnout = document.querySelector('.out')
+        function qiantui() {
+            imgdata = document.getElementById("myimg").src
+            imgdata = imgdata.substring(22)
+            $.post("/logout",{ "img_data": imgdata },function (res) {
+                res = JSON.parse(res)
+                document.getElementById("qiandao").
+                    innerText = "签退时间为：" + res["end_time"]
+            })
+        }
+        function qiandao() {
+            //取需要隐藏的图片 jquery取id $("#myimg")
+            //myimgs=document.getElementById("myimg")
+            //把这个图片设置隐藏 css属性visibility:hidden(占位隐藏）
+            //不占位的隐藏 display:none
+            //注意此处的隐藏的是canvas
+            $("#mypic").css("display","none")
+            //继续取画布
+            mycanvas = document.getElementById("mypic")
+            //画布可以画3D的图形，也可以画2D,必须指明画的是3D还是2D
+            context = mycanvas.getContext("2d")
+            //在2d的画板上画图像，注意后面的参数0,0画的起始点，
+            //400和400画的终止点。
+            context.drawImage(camera,0,0,400,400)
+            //把图片转成数据，然后发送到后端。先看一个数据。
+            result = mycanvas.toDataURL()
+            //将图片数据前22位标志编码格式截取掉，只保留22位以后的数据
+            //console.log(result)
+            console.log("---------------")
+            console.log(result)
+            result = result.substring(22)
+
+            //在前端直接提交这个result数据
+            $.post("/address",{ "img": result },function (res) {
+                //接收回来的res中少了22个字符data:image/png;base64,
+                //前端转化JSON数据的方法JSON.parse
+                res = JSON.parse(res)
+                console.log(res["imgcode"])
+                //现在在res的结果中加上22个字符
+                myres = "data:image/png;base64," + res["imgcode"]
+                document.getElementById("myimg").src = myres
+                document.getElementById("qiandao").innerText = "签到时间为：" + res["start_time"]
+
+            })
+        }
+        btnin.addEventListener('click',qiandao)
+        btnout.addEventListener('click',qiantui)
+        //程序一加载就打开摄像头
+        //根据id取摄像头的播放设备
+        camera = document.getElementById("mycamera")
+        //设置摄像头的宽和高，相当于调整摄像头的焦距
+        //这里只设置视频,所以是video，如果设置音频，需要有audio
+        //这里的width和height指的是宽度和高度。
+        cons = { video: { width: 400,height: 400 } }
+        //调用硬件的摄像头,代码固定，获取硬件摄像头后，取硬件
+        props = navigator.mediaDevices.getUserMedia(cons)
+        //把硬件摄像头的内容传给摄像头的播放设备，注意函数的res参数是摄像头的内容
+        props.then(function (res) {
+            camera.srcObject = res;
+            camera.play()
+        })
+
+
+
+    </script>
+</body>
+
+</html>
